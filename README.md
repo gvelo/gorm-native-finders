@@ -43,7 +43,7 @@ What is  still missing (and hopefully will be added in upcoming releases)
 * "like" and "between" operators
 * Pagination and sorting
 * Agregate functions
-* improbe compilation error reporting.
+* improve compilation error reporting.
  
 
 Version and Compatibility
