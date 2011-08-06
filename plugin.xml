@@ -1,0 +1,17 @@
+<plugin name='gorm-native-finders' version='0.1' grailsVersion='1.3.7 &gt; *'>
+  <author>Gabriel Velo</author>
+  <authorEmail>gabriel.velo@gmail.com</authorEmail>
+  <title>Gorm Native Finders Plugin</title>
+  <description>\
+the plugin allows grails developers to query domain objects using native groovy closures.
+</description>
+  <documentation>http://grails.org/plugin/gorm-native-finders</documentation>
+  <resources>
+    <resource>BuildConfig</resource>
+    <resource>Config</resource>
+    <resource>DataSource</resource>
+    <resource>UrlMappings</resource>
+  </resources>
+  <dependencies />
+  <behavior />
+</plugin>
