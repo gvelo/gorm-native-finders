@@ -3,6 +3,7 @@ package groovy.org.grails.plugin.nativefinders.transform;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.codehaus.groovy.ast.ASTNode;
 import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.Parameter;
@@ -23,7 +24,11 @@ import org.codehaus.groovy.ast.expr.VariableExpression;
 import org.codehaus.groovy.ast.stmt.BlockStatement;
 import org.codehaus.groovy.ast.stmt.ExpressionStatement;
 import org.codehaus.groovy.ast.stmt.Statement;
+import org.codehaus.groovy.control.SourceUnit;
+import org.codehaus.groovy.control.messages.SyntaxErrorMessage;
+import org.codehaus.groovy.syntax.SyntaxException;
 import org.codehaus.groovy.syntax.Token;
+import org.codehaus.groovy.syntax.Types;
 
 /**
  * Build a AST tree for reconstruct the ClossureExpression at runtime.
@@ -35,12 +40,16 @@ public class ClosureTransformer {
 
 	private Expression closureASTBuilderExpression;
 	private ArrayList<Expression> runtimeEvaluatedParameters;
+	private SourceUnit source;
+	private boolean hasErrors;
 
 	// parameters from Closure being tranformed.
 	private Parameter[] closureParameters;
 
-	public ClosureTransformer() {
+	public ClosureTransformer(SourceUnit source) {
 		runtimeEvaluatedParameters = new ArrayList<Expression>();
+		this.source=source;
+		hasErrors=false;
 	}
 
 	public Expression getClosureASTBuilderExpression() {
@@ -53,18 +62,46 @@ public class ClosureTransformer {
 
 	public void transformClosureExpression(ClosureExpression closure) {
 
+		validate( closure );
+		
+		if ( hasErrors ){
+			return;
+		}
+		
 		// ClosureExpression(Parameter[] parameters, Statement code)
 
 		ClassNode classNode = ClassHelper.make( ClosureExpression.class );
 		ArgumentListExpression arguments = new ArgumentListExpression();
 		closureParameters = closure.getParameters();
 		arguments.addExpression( transformParameters( closure.getParameters() ) );
-
-		// TODO: add compiler error handling.
-		// TODO: should we validate closure structure ??? { binaryExpr } or { NotExpression( BinaryExpression ) }
 		arguments.addExpression( transformStatement( closure.getCode() ) );
 
 		closureASTBuilderExpression = new ConstructorCallExpression( classNode, arguments );
+
+	}
+	
+	private void validate(ClosureExpression closure) {
+
+		BlockStatement bs = (BlockStatement) closure.getCode();
+
+		if (bs == null || bs.getStatements().size() == 0) {
+			addError("Empty closure in native finder", closure);
+			return;
+		}
+
+		ExpressionStatement expr;
+
+		try {
+			expr = (ExpressionStatement) bs.getStatements().get(0);
+		} catch (ClassCastException cce) {			
+			addError("Only binary expression are allowed in native finder closures", bs.getStatements().get(0));
+			return;
+		}
+
+		if (!(expr.getExpression() instanceof BinaryExpression) || (expr.getExpression() instanceof NotExpression)) {
+			addError("Only binary expression are allowed in native finder closures", expr.getExpression());
+			return;
+		}
 
 	}
 
@@ -161,8 +198,7 @@ public class ClosureTransformer {
 		} else if (expression instanceof NotExpression) {
 			return transformNotExpression( (NotExpression) expression );
 		} else {
-			// TODO: Add compiler error reporting.
-			System.out.println( "*** Unknow expression: " + expression );
+			addError(expression.getClass().getName() + "not allowed in native finder context", expression);
 		}
 
 		return null;
@@ -226,6 +262,10 @@ public class ClosureTransformer {
 	private Expression transformBinaryExpression(BinaryExpression binaryExpression) {
 
 		// public BinaryExpression(Expression leftExpression, Token operation, Expression rightExpression)
+		
+		if (binaryExpression.getOperation().getType() == Types.ASSIGN){
+			addError("Cannot assign inside a closure in native finder context, You must use '==' instead of '=' for equality comparisons", binaryExpression );
+		}
 
 		ClassNode classNode = ClassHelper.make( BinaryExpression.class );
 		ArgumentListExpression arguments = new ArgumentListExpression();
@@ -292,8 +332,7 @@ public class ClosureTransformer {
 		} else if (statement instanceof ExpressionStatement) {
 			return tranformExpressionStatement( (ExpressionStatement) statement );
 		} else {
-			// TODO: Add compiler error reporting.
-			System.out.println( " *** Unknow statement type" + statement );
+			addError(statement.getClass().getName() + "not allowed in native finder context", statement);			
 			return null;
 		}
 
@@ -344,6 +383,20 @@ public class ClosureTransformer {
 
 		return new CastExpression( ClassHelper.make( Statement[].class ), statementList );
 
+	}
+	
+	private void addError(String msg, ASTNode expr) {
+		
+		hasErrors=true;
+        int line = expr.getLineNumber();
+        int col = expr.getColumnNumber();
+        source.getErrorCollector().addErrorAndContinue(
+                new SyntaxErrorMessage(new SyntaxException(msg + '\n', line, col), source)
+        );
+    }
+	
+	public boolean hasErrors(){
+		return hasErrors;
 	}
 
 }

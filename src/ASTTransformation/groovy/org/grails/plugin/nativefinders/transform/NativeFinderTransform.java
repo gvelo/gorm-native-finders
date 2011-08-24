@@ -79,10 +79,13 @@ public class NativeFinderTransform extends ClassCodeVisitorSupport implements AS
 
 			ArgumentListExpression args = (ArgumentListExpression) call.getArguments();
 			ClosureExpression closureExpression = (ClosureExpression) args.getExpression( 0 );
-			ClosureTransformer transformer = new ClosureTransformer();
+			ClosureTransformer transformer = new ClosureTransformer(sourceUnit);
 			transformer.transformClosureExpression( closureExpression );
-			closureASTBuilderExpressions.add( transformer.getClosureASTBuilderExpression() );
-			transformFinderArguments( call, transformer.getRuntimeEvaluatedParameters() );
+			
+			if ( !transformer.hasErrors() ){
+				closureASTBuilderExpressions.add( transformer.getClosureASTBuilderExpression() );
+				transformFinderArguments( call, transformer.getRuntimeEvaluatedParameters() );
+			}
 
 		} else {
 			super.visitMethodCallExpression( call );

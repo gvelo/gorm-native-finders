@@ -19,6 +19,7 @@ import org.codehaus.groovy.ast.Parameter;
 import org.codehaus.groovy.ast.expr.ClosureExpression;
 import org.codehaus.groovy.ast.expr.MethodCallExpression;
 import org.codehaus.groovy.control.CompilationUnit;
+import org.codehaus.groovy.control.MultipleCompilationErrorsException;
 import org.codehaus.groovy.control.Phases;
 import org.codehaus.groovy.control.SourceUnit;
 
@@ -169,8 +170,49 @@ class NativeFinderTransformTests extends GrailsUnitTestCase {
 
 
 
+	void testInvalidRootStatement() {
 
 
+		try{
+			parseAndInstance ( """
+					
+					def test(){
+						testFind{ print it }
+					}
+					
+				""" )
+		} catch ( MultipleCompilationErrorsException e ) {
+
+			assert e.getErrorCollector().getErrorCount() == 1
+			assert e.getMessage().contains( "Only binary expression are allowed in native finder closures" );
+			return;
+		}
+
+		fail("MultipleCompilationErrorsException expected");
+	}
+
+
+
+	void testAssign() {
+
+
+		try{
+			parseAndInstance ( """
+							
+							def test(){
+								testFind{ it.type = "book" }
+							}
+							
+						""" )
+		} catch ( MultipleCompilationErrorsException e ) {
+
+			assert e.getErrorCollector().getErrorCount() == 1
+			assert e.getMessage().contains( "Cannot assign inside a closure in native finder context" );
+			return;
+		}
+
+		fail("MultipleCompilationErrorsException expected");
+	}
 
 
 
