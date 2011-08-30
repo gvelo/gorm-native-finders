@@ -155,10 +155,37 @@ public class Closure2HQL {
 		// transformation.
 
 		sb.append( alias );
-		sb.append( DOT );
-		sb.append( expr.getPropertyAsString() );
-
+		sb.append( getPropertyPath(expr) );
+		
 		sb.append( SPACE );
 
 	}
+	
+	private String getPropertyPath( PropertyExpression expr ){
+		
+		return getPropertyPath( expr , new StringBuilder() );
+		
+	}
+	
+	/**
+	 * Build the property path recursively ie account.owner.id.medicareNumber 
+	 * @param expr
+	 * @param path
+	 * @return
+	 */
+	private String getPropertyPath( PropertyExpression expr , StringBuilder path ){
+		
+		path.append( DOT );
+		
+		path.append( expr.getPropertyAsString() );
+		
+		if ( expr.getObjectExpression() instanceof PropertyExpression ){
+			getPropertyPath( ( PropertyExpression ) expr.getObjectExpression() , path );
+		}
+		
+		return path.toString();
+		
+	}
+		
+		
 }

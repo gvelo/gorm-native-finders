@@ -213,6 +213,28 @@ class NativeFinderTransformTests extends GrailsUnitTestCase {
 
 		fail("MultipleCompilationErrorsException expected");
 	}
+	
+	
+	
+	void testFindAssociations() {
+		
+		def obj = parseAndInstance ( """
+			
+			def test(){
+				testFind{ it.owner.id.country == 'AU' && it.owner.id.medicareNumber == 123456 }
+			}
+			
+		""" )
+		
+		obj.metaClass.static.testFind = { ClosureExpression closureExpression , ArrayList parameters ->
+		
+			assert getHQL( closureExpression ) == "from TestClass as testclass where ( ( testclass.country.id.owner = 'AU' ) and ( testclass.medicareNumber.id.owner = 123456 ) ) "
+			assert parameters.size() == 0
+		}
+		
+		obj.test()
+	}
+	
 
 
 

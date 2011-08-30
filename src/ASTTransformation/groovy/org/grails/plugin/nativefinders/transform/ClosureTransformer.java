@@ -49,7 +49,7 @@ public class ClosureTransformer {
 	public ClosureTransformer(SourceUnit source) {
 		runtimeEvaluatedParameters = new ArrayList<Expression>();
 		this.source=source;
-		hasErrors=false;
+		hasErrors=false;		
 	}
 
 	public Expression getClosureASTBuilderExpression() {
@@ -107,23 +107,9 @@ public class ClosureTransformer {
 
 	private boolean isClosureParameter(Expression expression) {
 
-		String variableName = null;
-
-		if (expression instanceof PropertyExpression) {
-
-			PropertyExpression property = (PropertyExpression) expression;
-
-			if (property.getObjectExpression() instanceof VariableExpression) {
-				variableName = ( (VariableExpression) property.getObjectExpression() ).getName();
-			} else {
-				return false;
-			}
-
-		} else if (expression instanceof VariableExpression) {
-
-			variableName = ( (VariableExpression) expression ).getName();
-
-		} else {
+		String variableName = getVariableName( expression ) ;		
+		
+		if ( variableName == null ){
 			return false;
 		}
 
@@ -141,6 +127,42 @@ public class ClosureTransformer {
 
 		return false;
 
+	}
+	
+	private String getVariableName( Expression expression ){
+		
+		if ( expression instanceof PropertyExpression ) {
+			
+			VariableExpression variableExpr = getRootVariable( (PropertyExpression) expression );
+
+			if ( variableExpr != null ){
+				return variableExpr.getName();
+			}
+			
+			return null;
+			
+		} else if (expression instanceof VariableExpression) {
+
+			return ( (VariableExpression) expression ).getName();
+
+		} else {
+			return null;
+		}
+		
+	}
+	
+	private VariableExpression getRootVariable( PropertyExpression propertyExpr ){
+		
+		if ( propertyExpr.getObjectExpression() instanceof VariableExpression ){
+			return (VariableExpression) propertyExpr.getObjectExpression(); 
+		}
+		
+		if ( propertyExpr.getObjectExpression() instanceof PropertyExpression ){
+			return getRootVariable( (PropertyExpression) propertyExpr.getObjectExpression() ); 
+		}
+		
+		return null;
+		
 	}
 
 	private Expression transformParameters(Parameter[] parameters) {

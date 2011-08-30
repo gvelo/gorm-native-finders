@@ -106,6 +106,16 @@ class Closure2HQLTests extends NativeFinderTestBase {
 
 		assert  getHQL(source) == "from Book as book where ( ( book.author = 'Sabato' ) or ( book.printYear > 1970 ) ) "
 	}
+	
+	void testAssociations() {
+		
+				def source = """
+				class Account{}
+				testMethod{ Account account -> account.owner.id.country == 'AU' && account.owner.id.medicareNumber == 123456 }
+				"""
+		
+				assert  getHQL(source) == "from Account as account where ( ( account.country.id.owner = 'AU' ) and ( account.medicareNumber.id.owner = 123456 ) ) "
+			}
 
 
 	public String getHQL( String source ){
