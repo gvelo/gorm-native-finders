@@ -253,6 +253,25 @@ class NativeFinderTransformTests extends GrailsUnitTestCase {
 	}
 	
 
+	void testCount() {
+		
+		def obj = parseAndInstance ( """
+			
+			def test(){
+				testFind{ it.branch == "london" && it.state == 1 }
+			}
+			
+		""" )
+		
+		obj.metaClass.static.testFind = { ClosureExpression closureExpression , ArrayList parameters ->
+		
+			assert getHQL( closureExpression, true ) == "select count(*) from TestClass as testclass where ( ( testclass.branch = 'london' ) and ( testclass.state = 1 ) ) "
+			assert parameters.size() == 0
+		}
+		
+		obj.test()
+	}
+
 
 
 	def parseAndInstance( source ){
@@ -267,7 +286,7 @@ class NativeFinderTransformTests extends GrailsUnitTestCase {
 	}
 
 
-	def getHQL( closureExpression ){
+	def getHQL( closureExpression , isCount=false ){
 
 		Parameter[] p = closureExpression.getParameters()
 
@@ -280,7 +299,7 @@ class NativeFinderTransformTests extends GrailsUnitTestCase {
 		}
 
 		Closure2HQL closure2HQL = new Closure2HQL()
-		return  closure2HQL.tranformClosureExpression (className, closureExpression)
+		return  closure2HQL.buildQuery (className, closureExpression, isCount )
 	}
 }
 

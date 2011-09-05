@@ -41,13 +41,10 @@ public class Closure2HQL {
 	private StringBuilder sb;
 	private String alias;
 
-	private static final String DISTINCT_CLAUSE = "distinct ";
-	private static final String SELECT_CLAUSE = "select ";
+	private static final String COUNT_CLAUSE = "select count(*) ";
 	private static final String AS_CLAUSE = " as ";
-	private static final String FROM_CLAUSE = "from ";
-	private static final String ORDER_BY_CLAUSE = "order by ";
+	private static final String FROM_CLAUSE = "from ";	
 	private static final String WHERE_CLAUSE = " where ";
-	private static final String COMMA = ",";
 	private static final String RIGHT_PARENTHESIS = ") ";
 	private static final String LEFT_PARENTHESIS = "( ";
 	private static final String SPACE = " ";
@@ -62,10 +59,14 @@ public class Closure2HQL {
 		sb = new StringBuilder();
 	}
 
-	public String tranformClosureExpression(String className, ClosureExpression closureExpression) {
+	public String buildQuery(String className, ClosureExpression closureExpression, boolean isCount ) {
 
 		this.alias = className.toLowerCase();
-
+		
+		if ( isCount ) {
+			sb.append( COUNT_CLAUSE );
+		}
+		
 		sb.append( FROM_CLAUSE );
 		sb.append( className );
 		sb.append( AS_CLAUSE );

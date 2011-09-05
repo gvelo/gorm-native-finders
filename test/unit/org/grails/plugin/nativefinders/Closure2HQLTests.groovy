@@ -126,16 +126,28 @@ class Closure2HQLTests extends NativeFinderTestBase {
 	
 	void testAssociations() {
 		
-				def source = """
-				class Account{}
-				testMethod{ Account account -> account.owner.id.country == 'AU' && account.owner.id.medicareNumber == 123456 }
-				"""
+		def source = """
+		class Account{}
+		testMethod{ Account account -> account.owner.id.country == 'AU' && account.owner.id.medicareNumber == 123456 }
+		"""
+
+		assert  getHQL(source) == "from Account as account where ( ( account.country.id.owner = 'AU' ) and ( account.medicareNumber.id.owner = 123456 ) ) "
+	}
+	
+	
+	void testCountQuery() {
 		
-				assert  getHQL(source) == "from Account as account where ( ( account.country.id.owner = 'AU' ) and ( account.medicareNumber.id.owner = 123456 ) ) "
-			}
+		def source = """
+		class Account{}
+		testMethod{ Account account -> account.branch == "london" && account.state == 1 }
+		"""
+
+		assert  getHQL(source,true) == "select count(*) from Account as account where ( ( account.branch = 'london' ) and ( account.state = 1 ) ) "
+	}
+		
 
 
-	public String getHQL( String source ){
+	public String getHQL( String source , isCount = false ){
 
 		def closureExpression = getAST ( source );
 
@@ -150,6 +162,6 @@ class Closure2HQLTests extends NativeFinderTestBase {
 		}
 
 		Closure2HQL closure2HQL = new Closure2HQL();
-		return  closure2HQL.tranformClosureExpression (className, closureExpression)
+		return  closure2HQL.buildQuery (className, closureExpression, isCount );
 	}
 }

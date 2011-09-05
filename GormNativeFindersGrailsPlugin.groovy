@@ -50,6 +50,7 @@ the plugin allows grails developers to query domain objects using native groovy 
 			NativeFinderHandler nf = new NativeFinderHandler(dc,sf);
 			dc.metaClass.static.find = { ClosureExpression closureExpression , ArrayList parameters -> nf.find( closureExpression , parameters )  }
 			dc.metaClass.static.findAll = { ClosureExpression closureExpression , ArrayList parameters -> nf.findAll( closureExpression , parameters )  }
+			dc.metaClass.static.count = { ClosureExpression closureExpression , ArrayList parameters -> nf.count( closureExpression , parameters )  }
 		}
 
 	}

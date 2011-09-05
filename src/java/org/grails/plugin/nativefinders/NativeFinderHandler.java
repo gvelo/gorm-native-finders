@@ -54,7 +54,7 @@ public class NativeFinderHandler {
 
 		HibernateTemplate hibernateTemplate = new HibernateTemplate(sessionFactory);
 
-		final String query = getQuery(domainClass.getName(), closureExpression);
+		final String query = getQuery(domainClass.getName(), closureExpression, false );
 
 		return hibernateTemplate.execute(new HibernateCallback<Object>() {
 			public Object doInHibernate(Session session) throws HibernateException, SQLException {
@@ -90,7 +90,7 @@ public class NativeFinderHandler {
 
 		HibernateTemplate hibernateTemplate = new HibernateTemplate(sessionFactory);
 
-		final String query = getQuery(domainClass.getName(), closureExpression);
+		final String query = getQuery(domainClass.getName(), closureExpression, false);
 
 		return hibernateTemplate.executeFind(new HibernateCallback<Object>() {
 			public Object doInHibernate(Session session) throws HibernateException, SQLException {
@@ -107,8 +107,31 @@ public class NativeFinderHandler {
 		});
 
 	}
+	
+	public Object count(ClosureExpression closureExpression, final ArrayList parameters) {
 
-	private String getQuery(String className, ClosureExpression closureExpression) {
+		HibernateTemplate hibernateTemplate = new HibernateTemplate(sessionFactory);
+
+		final String query = getQuery(domainClass.getName(), closureExpression, true);
+
+		return hibernateTemplate.execute(new HibernateCallback<Object>() {
+			public Object doInHibernate(Session session) throws HibernateException, SQLException {
+
+				Query q = session.createQuery(query);
+
+				for (int i = 0; i < parameters.size(); i++) {
+					q.setParameter(i, parameters.get(i));
+				}
+				
+				return q.uniqueResult();
+
+			}
+		});
+
+	}
+
+
+	private String getQuery(String className, ClosureExpression closureExpression , boolean isCount ) {
 
 		String query = null;
 
@@ -119,8 +142,8 @@ public class NativeFinderHandler {
 		if (query == null) {
 
 			Closure2HQL closure2HQL = new Closure2HQL();
-
-			query = closure2HQL.tranformClosureExpression(className, closureExpression);
+			
+			query = closure2HQL.buildQuery( className, closureExpression, isCount );
 
 			synchronized (queryCache) {
 				queryCache.put(closureExpression, query);
