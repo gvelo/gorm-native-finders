@@ -1,4 +1,6 @@
-package groovy.org.grails.plugin.nativefinders.transform;
+package org.grails.plugin.nativefinders.transform;
+
+import org.grails.plugin.nativefinders.transform.ParameterPlaceholderExpression;
 
 import org.codehaus.groovy.ast.GroovyCodeVisitor;
 import org.codehaus.groovy.ast.expr.Expression;

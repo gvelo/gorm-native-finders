@@ -1,4 +1,4 @@
-package groovy.org.grails.plugin.nativefinders
+package org.grails.plugin.nativefinders
 
 import grails.test.*
 

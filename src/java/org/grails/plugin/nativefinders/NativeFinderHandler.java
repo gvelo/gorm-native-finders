@@ -1,4 +1,4 @@
-package groovy.org.grails.plugin.nativefinders;
+package org.grails.plugin.nativefinders;
 
 import java.sql.SQLException;
 import java.util.ArrayList;

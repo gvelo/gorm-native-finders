@@ -1,4 +1,4 @@
-package groovy.org.grails.plugin.nativefinders.transform;
+package org.grails.plugin.nativefinders.transform;
 
 import java.util.ArrayList;
 import java.util.List;

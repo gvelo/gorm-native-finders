@@ -1,4 +1,4 @@
-package groovy.org.grails.plugin.nativefinders.transform;
+package org.grails.plugin.nativefinders.transform;
 
 import groovyjarjarasm.asm.Opcodes;
 
@@ -157,7 +157,7 @@ public class NativeFinderTransform extends ClassCodeVisitorSupport implements AS
 		ModuleNode module = sourceUnit.getAST();
 
 		module.addStarImport( "org.codehaus.groovy.ast." );
-		module.addStarImport( "groovy.org.grails.plugin.nativefinders.transform." );
+		module.addStarImport( "org.grails.plugin.nativefinders.transform." );
 
 		ListExpression astCacheInitialValue = new ListExpression( closureASTBuilderExpressions );
 		classNode.addField( AST_CACHE_FIELD_NAME, ACC_PUBLIC | ACC_STATIC, ClassHelper.DYNAMIC_TYPE, astCacheInitialValue );

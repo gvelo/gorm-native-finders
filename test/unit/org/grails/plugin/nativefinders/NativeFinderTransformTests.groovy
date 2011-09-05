@@ -1,9 +1,8 @@
-package groovy.org.grails.plugin.nativefinders
+package org.grails.plugin.nativefinders
 
 import grails.test.*
 
-import groovy.org.grails.plugin.nativefinders.Closure2HQL;
-import groovy.org.grails.plugin.nativefinders.transform.NativeFinderTransform;
+import org.grails.plugin.nativefinders.transform.NativeFinderTransform;
 
 import org.codehaus.groovy.ast.ASTNode;
 import org.codehaus.groovy.ast.ClassNode;
@@ -22,6 +21,7 @@ import org.codehaus.groovy.control.CompilationUnit;
 import org.codehaus.groovy.control.MultipleCompilationErrorsException;
 import org.codehaus.groovy.control.Phases;
 import org.codehaus.groovy.control.SourceUnit;
+import org.grails.plugin.nativefinders.Closure2HQL;
 
 class NativeFinderTransformTests extends GrailsUnitTestCase {
 

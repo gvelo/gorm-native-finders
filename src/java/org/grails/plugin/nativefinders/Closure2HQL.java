@@ -1,6 +1,5 @@
-package groovy.org.grails.plugin.nativefinders;
+package org.grails.plugin.nativefinders;
 
-import groovy.org.grails.plugin.nativefinders.transform.ParameterPlaceholderExpression;
 
 import org.codehaus.groovy.ast.expr.BinaryExpression;
 import org.codehaus.groovy.ast.expr.ClosureExpression;
@@ -14,6 +13,7 @@ import org.codehaus.groovy.ast.stmt.Statement;
 import org.codehaus.groovy.grails.commons.GrailsDomainClass;
 import org.codehaus.groovy.syntax.Token;
 import org.codehaus.groovy.syntax.Types;
+import org.grails.plugin.nativefinders.transform.ParameterPlaceholderExpression;
 
 /**
  * This class build the HQL from the ClosureExpression

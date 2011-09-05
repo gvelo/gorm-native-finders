@@ -1,4 +1,4 @@
-import groovy.org.grails.plugin.nativefinders.NativeFinderHandler;
+import org.grails.plugin.nativefinders.NativeFinderHandler;
 
 import org.codehaus.groovy.ast.expr.ClosureExpression;
 import org.codehaus.groovy.grails.commons.GrailsApplication;

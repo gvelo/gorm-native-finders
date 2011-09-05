@@ -1,8 +1,7 @@
-package groovy.org.grails.plugin.nativefinders
+package org.grails.plugin.nativefinders
 
 import grails.test.*
 
-import groovy.org.grails.plugin.nativefinders.Closure2HQL;
 
 import org.codehaus.groovy.ast.ClassCodeVisitorSupport;
 import org.codehaus.groovy.ast.ModuleNode;
@@ -12,6 +11,7 @@ import org.codehaus.groovy.ast.expr.MethodCallExpression;
 import org.codehaus.groovy.control.CompilationUnit;
 import org.codehaus.groovy.control.Phases;
 import org.codehaus.groovy.control.SourceUnit;
+import org.grails.plugin.nativefinders.Closure2HQL;
 
 
 class Closure2HQLTests extends NativeFinderTestBase {
