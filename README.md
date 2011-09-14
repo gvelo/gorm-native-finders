@@ -60,11 +60,13 @@ releases notes
 --------------
 
 0.2
+
 * add support for HQL functions ( substring(), trim(), lower(), day() ... etc )
 * add count method e.g. Account.count{ account -> account.branch == "London" && account.state == 1 }
 * add support for implicit joins e.g. find { Account account -> account.owner.id.medicareNumber = 123456 }
 
-0.1 
+0.1
+ 
 * initial release 
 
         
