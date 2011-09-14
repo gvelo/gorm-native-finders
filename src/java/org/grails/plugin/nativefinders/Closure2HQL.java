@@ -22,8 +22,11 @@ import org.codehaus.groovy.ast.expr.BinaryExpression;
 import org.codehaus.groovy.ast.expr.ClosureExpression;
 import org.codehaus.groovy.ast.expr.ConstantExpression;
 import org.codehaus.groovy.ast.expr.Expression;
+import org.codehaus.groovy.ast.expr.MethodCallExpression;
 import org.codehaus.groovy.ast.expr.NotExpression;
 import org.codehaus.groovy.ast.expr.PropertyExpression;
+import org.codehaus.groovy.ast.expr.TupleExpression;
+import org.codehaus.groovy.ast.expr.VariableExpression;
 import org.codehaus.groovy.ast.stmt.BlockStatement;
 import org.codehaus.groovy.ast.stmt.ExpressionStatement;
 import org.codehaus.groovy.syntax.Token;
@@ -41,19 +44,21 @@ public class Closure2HQL {
 	private StringBuilder sb;
 	private String alias;
 
-	private static final String COUNT_CLAUSE = "select count(*) ";
-	private static final String AS_CLAUSE = " as ";
-	private static final String FROM_CLAUSE = "from ";	
-	private static final String WHERE_CLAUSE = " where ";
-	private static final String RIGHT_PARENTHESIS = ") ";
-	private static final String LEFT_PARENTHESIS = "( ";
+	private static final String COUNT_CLAUSE = "select count(*)";
+	private static final String AS_CLAUSE = "as";
+	private static final String FROM_CLAUSE = "from";	
+	private static final String WHERE_CLAUSE = "where";
+	private static final String RIGHT_PARENTHESIS = ")";
+	private static final String LEFT_PARENTHESIS = "(";
 	private static final String SPACE = " ";
 	private static final String QUESTIONMARK = "?";
 	private static final String DOT = ".";
-	private static final String NOT_CLAUSE = "not ";
+	private static final String COMMA = ",";
+	private static final String NOT_CLAUSE = "not";
 	private static final String LOGICAL_AND = "and";
 	private static final String LOGICAL_OR = "or";
 	private static final String EQUAL = "=";
+	private static final String LIKE_CLAUSE = "like";	
 
 	public Closure2HQL() {
 		sb = new StringBuilder();
@@ -65,13 +70,19 @@ public class Closure2HQL {
 		
 		if ( isCount ) {
 			sb.append( COUNT_CLAUSE );
+			sb.append( SPACE );
 		}
 		
 		sb.append( FROM_CLAUSE );
+		sb.append( SPACE );
 		sb.append( className );
+		sb.append( SPACE );
 		sb.append( AS_CLAUSE );
+		sb.append( SPACE );
 		sb.append( alias );
+		sb.append( SPACE );
 		sb.append( WHERE_CLAUSE );
+		sb.append( SPACE );
 
 		ExpressionStatement exprStmt = (ExpressionStatement) ( (BlockStatement) closureExpression.getCode() ).getStatements().get( 0 );
 
@@ -93,22 +104,28 @@ public class Closure2HQL {
 			transformConstantExpression( (ConstantExpression) expr );
 		} else if (expr instanceof ParameterPlaceholderExpression) {
 			transformParameterPlaceholderExpression( (ParameterPlaceholderExpression) expr );
+		} else if (expr instanceof MethodCallExpression ) {
+			transformMethodCallExpression( (MethodCallExpression ) expr );
 		} else {
-			// WTF ???
+			// TODO: WTF ???
 		}
 
 	}
 
 	private void transformBinaryExpression(BinaryExpression expr) {
 		sb.append( LEFT_PARENTHESIS );
+		sb.append( SPACE );
 		transformExpression( expr.getLeftExpression() );
 		transformToken( expr.getOperation() );
 		transformExpression( expr.getRightExpression() );
+		sb.append( SPACE );
 		sb.append( RIGHT_PARENTHESIS );
 	}
 
 	private void transformToken(Token token) {
 
+		sb.append( SPACE );
+		
 		switch (token.getType()) {
 		case Types.COMPARE_EQUAL:
 			sb.append( EQUAL );
@@ -131,8 +148,11 @@ public class Closure2HQL {
 	private void transformNotExpression(NotExpression expr) {
 
 		sb.append( NOT_CLAUSE );
+		sb.append( SPACE );
 		sb.append( LEFT_PARENTHESIS );
+		sb.append( SPACE );
 		transformExpression( expr.getExpression() );
+		sb.append( SPACE );
 		sb.append( RIGHT_PARENTHESIS );
 
 	}
@@ -147,9 +167,7 @@ public class Closure2HQL {
 			sb.append( "'" );
 		} else {
 			sb.append( expr.getValue() );
-		}
-
-		sb.append( SPACE );
+		}		
 
 	}
 
@@ -160,8 +178,7 @@ public class Closure2HQL {
 		// same order they where extracted from the ClosureExpression.
 
 		sb.append( QUESTIONMARK );
-		sb.append( SPACE );
-
+		
 	}
 
 	private void transformPropertyExpression(PropertyExpression expr) {
@@ -170,38 +187,58 @@ public class Closure2HQL {
 		// All other properties were converted to parameters in the AST
 		// transformation.
 
-		sb.append( alias );
-		sb.append( getPropertyPath(expr) );
+		if ( expr.getObjectExpression() instanceof VariableExpression ){
+			sb.append( alias );
+		} else {
+			transformExpression(expr.getObjectExpression());
+		}
 		
-		sb.append( SPACE );
+		sb.append( DOT );
+		sb.append( expr.getPropertyAsString() );	
+		
 
 	}
 	
-	private String getPropertyPath( PropertyExpression expr ){
+	private void transformMethodCallExpression( MethodCallExpression expr ){
 		
-		return getPropertyPath( expr , new StringBuilder() );
-		
+		if ( LIKE_CLAUSE.equals( expr.getMethodAsString() ) ){			
+			processLikeMethod( expr );
+		} else {
+			processGenericMethod( expr );
+		}
 	}
 	
-	/**
-	 * Build the property path recursively ie account.owner.id.medicareNumber 
-	 * @param expr
-	 * @param path
-	 * @return
-	 */
-	private String getPropertyPath( PropertyExpression expr , StringBuilder path ){
+	private void processLikeMethod( MethodCallExpression expr  ){
+		transformExpression( expr.getObjectExpression() );			
+		sb.append( SPACE );
+		sb.append( LIKE_CLAUSE );
+		sb.append( SPACE );
+		transformExpression( ( (TupleExpression) expr.getArguments() ).getExpression(0) );
+	}
+	
+	private void processGenericMethod( MethodCallExpression  expr ){
 		
-		path.append( DOT );
+		sb.append( expr.getMethodAsString() );
+		sb.append( LEFT_PARENTHESIS );
+		sb.append( SPACE );
 		
-		path.append( expr.getPropertyAsString() );
+		transformExpression( expr.getObjectExpression() );
 		
-		if ( expr.getObjectExpression() instanceof PropertyExpression ){
-			getPropertyPath( ( PropertyExpression ) expr.getObjectExpression() , path );
+		if ( expr.getArguments() != null ){
+			
+			TupleExpression tuple = (TupleExpression) expr.getArguments();
+			
+			for ( int i=0; i < tuple.getExpressions().size(); i++){
+					sb.append(COMMA);
+					sb.append(SPACE);
+					transformExpression( tuple.getExpression(i));
+			}
+			
 		}
 		
-		return path.toString();
+		sb.append( SPACE );
+		sb.append( RIGHT_PARENTHESIS);
 		
-	}
-		
+	}		
 		
 }

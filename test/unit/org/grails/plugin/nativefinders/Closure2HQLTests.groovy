@@ -48,7 +48,7 @@ class Closure2HQLTests extends NativeFinderTestBase {
 		testMethod{ it.name == "nameStr" }
 		"""
 
-		assert  getHQL(source) == "from TestClass as testclass where ( testclass.name = 'nameStr' ) "
+		assert  getHQL(source) == "from TestClass as testclass where ( testclass.name = 'nameStr' )"
 	}
 
 
@@ -58,7 +58,7 @@ class Closure2HQLTests extends NativeFinderTestBase {
 		testMethod{ it.name == true }
 		"""
 
-		assert  getHQL(source) == "from TestClass as testclass where ( testclass.name = true ) "
+		assert  getHQL(source) == "from TestClass as testclass where ( testclass.name = true )"
 	}
 
 
@@ -68,7 +68,7 @@ class Closure2HQLTests extends NativeFinderTestBase {
 		testMethod{ it.name == null }
 		"""
 
-		assert  getHQL(source) == "from TestClass as testclass where ( testclass.name = null ) "
+		assert  getHQL(source) == "from TestClass as testclass where ( testclass.name = null )"
 	}
 
 
@@ -90,7 +90,7 @@ class Closure2HQLTests extends NativeFinderTestBase {
 		testMethod{ it.value >= 1000 }
 		"""
 
-		assert  getHQL(source) == "from TestClass as testclass where ( testclass.value >= 1000 ) "
+		assert  getHQL(source) == "from TestClass as testclass where ( testclass.value >= 1000 )"
 	}
 
 
@@ -100,7 +100,7 @@ class Closure2HQLTests extends NativeFinderTestBase {
 		testMethod{ !( it.value > 1000) }
 		"""
 
-		assert  getHQL(source) == "from TestClass as testclass where not ( ( testclass.value > 1000 ) ) "
+		assert  getHQL(source) == "from TestClass as testclass where not ( ( testclass.value > 1000 ) )"
 	}
 
 
@@ -110,7 +110,7 @@ class Closure2HQLTests extends NativeFinderTestBase {
 		testMethod{ it.price > 1000 && it.type == "house" && it.state==10 }
 		"""
 
-		assert  getHQL(source) == "from TestClass as testclass where ( ( ( testclass.price > 1000 ) and ( testclass.type = 'house' ) ) and ( testclass.state = 10 ) ) "
+		assert  getHQL(source) == "from TestClass as testclass where ( ( ( testclass.price > 1000 ) and ( testclass.type = 'house' ) ) and ( testclass.state = 10 ) )"
 	}
 
 
@@ -121,7 +121,7 @@ class Closure2HQLTests extends NativeFinderTestBase {
 		testMethod{ Book book -> book.author == "Sabato" || book.printYear > 1970 }
 		"""
 
-		assert  getHQL(source) == "from Book as book where ( ( book.author = 'Sabato' ) or ( book.printYear > 1970 ) ) "
+		assert  getHQL(source) == "from Book as book where ( ( book.author = 'Sabato' ) or ( book.printYear > 1970 ) )"
 	}
 	
 	void testAssociations() {
@@ -131,7 +131,7 @@ class Closure2HQLTests extends NativeFinderTestBase {
 		testMethod{ Account account -> account.owner.id.country == 'AU' && account.owner.id.medicareNumber == 123456 }
 		"""
 
-		assert  getHQL(source) == "from Account as account where ( ( account.country.id.owner = 'AU' ) and ( account.medicareNumber.id.owner = 123456 ) ) "
+		assert  getHQL(source) == "from Account as account where ( ( account.owner.id.country = 'AU' ) and ( account.owner.id.medicareNumber = 123456 ) )"
 	}
 	
 	
@@ -142,8 +142,39 @@ class Closure2HQLTests extends NativeFinderTestBase {
 		testMethod{ Account account -> account.branch == "london" && account.state == 1 }
 		"""
 
-		assert  getHQL(source,true) == "select count(*) from Account as account where ( ( account.branch = 'london' ) and ( account.state = 1 ) ) "
+		assert  getHQL(source,true) == "select count(*) from Account as account where ( ( account.branch = 'london' ) and ( account.state = 1 ) )"
 	}
+	
+	void testLikeMethod() {
+		
+		def source = """
+		class Account{}
+		testMethod{ Account account -> account.branch.like("lon%") && account.state == 1 }
+		"""
+
+		assert  getHQL(source) == "from Account as account where ( account.branch like 'lon%' and ( account.state = 1 ) )"
+	}
+	
+	void testDayFuncion() {
+		
+		def source = """
+		class Account{}
+		testMethod{ Account account -> account.creationDate.year() > 1999 && account.state == 1 }
+		"""
+
+		assert  getHQL(source) == "from Account as account where ( ( year( account.creationDate ) > 1999 ) and ( account.state = 1 ) )"
+	}
+	
+	void testMethodChain() {
+		
+		def source = """
+		class Account{}
+		testMethod{ Account account -> account.owner.name.substr(3,6).lower() == 'wkin' && account.state == 1 }
+		"""
+
+		assert  getHQL(source) == "from Account as account where ( ( lower( substr( account.owner.name, 3, 6 ) ) = 'wkin' ) and ( account.state = 1 ) )"
+	}
+
 		
 
 

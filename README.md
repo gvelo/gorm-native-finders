@@ -9,9 +9,9 @@ the plugin allows grails developers to query domain objects using native groovy 
 examples
 --------
 
-		Book.find{ Book book -> book.author == 'Ernesto Sabato' && book.state == Book.ACTIVE }
-
-		Book.findAll{ it.author == 'Ernesto Sabato' && it.releaseDate < params.releaseDate }
+        Book.findAll{ book -> book.author.name.lower().like("%dawkins%") && book.state == Book.ACTIVE }
+        
+        Book.count{ book -> book.author.name.like("%Dawkins%") && book.releaseDate.year() > 2009  }
 
 
 How the plugin works
@@ -31,18 +31,22 @@ as usual:
 What currently works
 --------------------
 
-* Currently only  the < > <= >= != operations are supported.
+* mathematical operators: +, -, *, /
+* binary comparison operators: =, >=, <=, <>, !=, like
+* logical operations &&, ||, !
+* Parentheses ( ) that indicates grouping 
+* second(...), minute(...), hour(...), day(...), month(...), and year(...) 
+* Any function or operator defined by EJB-QL 3.0: substring(), trim(), lower(), upper(), length(), locate(), abs(), sqrt(), bit_length(), mod()
+* str() for converting numeric or temporal values to a readable string 
 * Only hibernate datasource is supported.
 
 
-What is  still missing (and hopefully will be added in upcoming releases)
+What is still missing (and hopefully will be added in upcoming releases)
 -------------------------------------------------------------------------
 
 * Support for multiple datasources
 * spring-data-mapping integration
-* "like" and "between" operators
 * Pagination and sorting
-* Agregate functions
 * improve compilation error reporting.
  
 
@@ -55,13 +59,19 @@ the plugin is tested with Grails 1.3 and Grails 2
 releases notes
 --------------
 
-0.1 initial release 
+0.2
+* add support for HQL functions ( substring(), trim(), lower(), day() ... etc )
+* add count method e.g. Account.count{ account -> account.branch == "London" && account.state == 1 }
+* add support for implicit joins e.g. find { Account account -> account.owner.id.medicareNumber = 123456 }
+
+0.1 
+* initial release 
 
         
 
 issues.
 -------
 
-
+http://jira.grails.org/browse/GPGORMNATIVEFIND
 
 

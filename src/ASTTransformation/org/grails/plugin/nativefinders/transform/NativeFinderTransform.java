@@ -20,10 +20,13 @@ package org.grails.plugin.nativefinders.transform;
 import groovyjarjarasm.asm.Opcodes;
 
 import java.io.File;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.codehaus.groovy.ast.ASTNode;
+import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassCodeVisitorSupport;
 import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
@@ -58,6 +61,8 @@ public class NativeFinderTransform extends ClassCodeVisitorSupport implements AS
 	private static final String GRAILS_APP_DIR = "grails-app";
 	private static final String FIND_METHOD_NAME = "find";
 	private static final String FINDALL_METHOD_NAME = "findAll";
+	private static final String COUNT_METHOD_NAME = "count";
+	private static final AnnotationNode GORM_ENTITY_ANNOTATION = new AnnotationNode(new ClassNode(GormEntity.class));
 
 	public final String AST_CACHE_FIELD_NAME = "gorm_native_finder_ast_cache";
 
@@ -73,7 +78,13 @@ public class NativeFinderTransform extends ClassCodeVisitorSupport implements AS
 		this.compileUnit = sourceUnit.getAST().getUnit();
 		ModuleNode module = sourceUnit.getAST();
 
+		boolean isDomainSource = isDomainClass(sourceUnit);
+		
 		for (ClassNode classNode : module.getClasses()) {
+			
+			if ( isDomainSource ){
+				tagGormEntity(classNode);
+			}
 
 			closureASTBuilderExpressions = new ArrayList<Expression>();
 
@@ -86,6 +97,10 @@ public class NativeFinderTransform extends ClassCodeVisitorSupport implements AS
 			}
 		}
 
+	}
+	
+	private void tagGormEntity( ClassNode classNode ){
+		classNode.addAnnotation(GORM_ENTITY_ANNOTATION);		
 	}
 
 	@Override
@@ -117,7 +132,7 @@ public class NativeFinderTransform extends ClassCodeVisitorSupport implements AS
 
 			String methodName = call.getMethodAsString();
 
-			if (isDomainClass( cn ) && ( FIND_METHOD_NAME.equals( methodName ) || FINDALL_METHOD_NAME.equals( methodName ) )) {
+			if (isDomainClass( cn ) && ( FIND_METHOD_NAME.equals( methodName ) || FINDALL_METHOD_NAME.equals( methodName ) || COUNT_METHOD_NAME.equals( methodName ))) {
 
 				if (!( call.getArguments() instanceof ArgumentListExpression )) {
 					return false;
@@ -187,26 +202,47 @@ public class NativeFinderTransform extends ClassCodeVisitorSupport implements AS
 	}
 
 	protected boolean isDomainClass(ClassNode classNode) {
-
+		
 		ClassNode cn = compileUnit.getClass( classNode.getName() );
 
 		if (cn == null) {
+			
+			try {
+				
+				Class clss = sourceUnit.getClassLoader().loadClass( classNode.getName());
+				
+				if ( clss.getAnnotation( GormEntity.class ) != null ){
+					return true;
+				}				
+				
+			} catch (ClassNotFoundException e) {				
+			}
+			
 			return false;
+			
 		}
-
-		String sourcePath = cn.getModule().getContext().getName();
-
-		File sourceFile = new File( sourcePath );
+		
+		return isDomainClass( cn.getModule().getContext() );
+		
+	}
+	
+	protected boolean isDomainClass( SourceUnit sourceNode ) {
+		
+		String sourcePath = sourceNode.getName();
+		File sourceFile = new File(sourcePath);
 		File parent = sourceFile.getParentFile();
+		
 		while (parent != null) {
 			File parentParent = parent.getParentFile();
-			if (parent.getName().equals( DOMAIN_DIR ) && parentParent != null && parentParent.getName().equals( GRAILS_APP_DIR )) {
+			if (parent.getName().equals(DOMAIN_DIR) && parentParent != null &&
+					parentParent.getName().equals(GRAILS_APP_DIR)) {
 				return true;
 			}
 			parent = parentParent;
 		}
-
+		
 		return false;
 	}
+
 
 }

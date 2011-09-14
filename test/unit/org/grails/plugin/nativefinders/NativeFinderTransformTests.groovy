@@ -65,7 +65,7 @@ class NativeFinderTransformTests extends GrailsUnitTestCase {
 
 		obj.metaClass.static.testFind = { ClosureExpression closureExpression , ArrayList parameters ->
 
-			assert getHQL( closureExpression ) == "from TestClass as testclass where ( testclass.name = 'someName' ) "
+			assert getHQL( closureExpression ) == "from TestClass as testclass where ( testclass.name = 'someName' )"
 			assert parameters.size() == 0
 		}
 
@@ -91,7 +91,7 @@ class NativeFinderTransformTests extends GrailsUnitTestCase {
 
 		obj.metaClass.static.testFind = { ClosureExpression closureExpression , ArrayList parameters ->
 
-			assert getHQL( closureExpression ) == "from TestClass as testclass where ( testclass.name = ? ) "
+			assert getHQL( closureExpression ) == "from TestClass as testclass where ( testclass.name = ? )"
 			assert parameters.size() == 1
 			assert parameters[0] == "bar"
 		}
@@ -121,7 +121,7 @@ class NativeFinderTransformTests extends GrailsUnitTestCase {
 
 		obj.metaClass.static.testFind = { ClosureExpression closureExpression , ArrayList parameters ->
 
-			assert getHQL( closureExpression ) == "from TestClass as testclass where ( ( ( testclass.field = ? ) or ( testclass.field = ? ) ) or ( testclass.field = ? ) ) "
+			assert getHQL( closureExpression ) == "from TestClass as testclass where ( ( ( testclass.field = ? ) or ( testclass.field = ? ) ) or ( testclass.field = ? ) )"
 			assert parameters.size() == 3
 			assert parameters[0] == "first"
 			assert parameters[1] == "second"
@@ -138,7 +138,7 @@ class NativeFinderTransformTests extends GrailsUnitTestCase {
 
 		def obj = parseAndInstance ( """
 						
-			def test(){			
+			def test(){
 								
 				testFind{ it.dateField > new Date() }
 								
@@ -148,7 +148,7 @@ class NativeFinderTransformTests extends GrailsUnitTestCase {
 
 		obj.metaClass.static.testFind = { ClosureExpression closureExpression , ArrayList parameters ->
 
-			assert getHQL( closureExpression ) == "from TestClass as testclass where ( testclass.dateField > ? ) "
+			assert getHQL( closureExpression ) == "from TestClass as testclass where ( testclass.dateField > ? )"
 			assert parameters.size() == 1
 			assert parameters[0] instanceof Date
 		}
@@ -174,7 +174,7 @@ class NativeFinderTransformTests extends GrailsUnitTestCase {
 
 		obj.metaClass.static.testFind = { ClosureExpression closureExpression , ArrayList parameters ->
 
-			assert getHQL( closureExpression ) == "from TestClass as testclass where ( ( testclass.author = ? ) and ( testclass.releaseDate > ? ) ) "
+			assert getHQL( closureExpression ) == "from TestClass as testclass where ( ( testclass.author = ? ) and ( testclass.releaseDate > ? ) )"
 			assert parameters.size() == 2
 			assert parameters[0] == "Roberto Arlt"
 			assert parameters[1] instanceof Date
@@ -184,30 +184,6 @@ class NativeFinderTransformTests extends GrailsUnitTestCase {
 
 		obj.test( params )
 	}
-
-
-
-	void testInvalidRootStatement() {
-
-
-		try{
-			parseAndInstance ( """
-					
-					def test(){
-						testFind{ print it }
-					}
-					
-				""" )
-		} catch ( MultipleCompilationErrorsException e ) {
-
-			assert e.getErrorCollector().getErrorCount() == 1
-			assert e.getMessage().contains( "Only binary expression are allowed in native finder closures" );
-			return;
-		}
-
-		fail("MultipleCompilationErrorsException expected");
-	}
-
 
 
 	void testAssign() {
@@ -245,7 +221,7 @@ class NativeFinderTransformTests extends GrailsUnitTestCase {
 		
 		obj.metaClass.static.testFind = { ClosureExpression closureExpression , ArrayList parameters ->
 		
-			assert getHQL( closureExpression ) == "from TestClass as testclass where ( ( testclass.country.id.owner = 'AU' ) and ( testclass.medicareNumber.id.owner = 123456 ) ) "
+			assert getHQL( closureExpression ) == "from TestClass as testclass where ( ( testclass.owner.id.country = 'AU' ) and ( testclass.owner.id.medicareNumber = 123456 ) )"
 			assert parameters.size() == 0
 		}
 		
@@ -265,11 +241,87 @@ class NativeFinderTransformTests extends GrailsUnitTestCase {
 		
 		obj.metaClass.static.testFind = { ClosureExpression closureExpression , ArrayList parameters ->
 		
-			assert getHQL( closureExpression, true ) == "select count(*) from TestClass as testclass where ( ( testclass.branch = 'london' ) and ( testclass.state = 1 ) ) "
+			assert getHQL( closureExpression, true ) == "select count(*) from TestClass as testclass where ( ( testclass.branch = 'london' ) and ( testclass.state = 1 ) )"
 			assert parameters.size() == 0
 		}
 		
 		obj.test()
+	}
+	
+	
+	void testLikeMethodWithParam() {
+		
+		def obj = parseAndInstance ( """
+						
+			def test( params ){
+											
+				testFind{ it.author.like( params.author ) && it.releaseDate > params.releaseDate }
+								
+			}
+			
+		""" )
+
+		obj.metaClass.static.testFind = { ClosureExpression closureExpression , ArrayList parameters ->
+
+			assert getHQL( closureExpression ) == "from TestClass as testclass where ( testclass.author like ? and ( testclass.releaseDate > ? ) )"
+			assert parameters.size() == 2
+			assert parameters[0] == "%Borges%"
+			assert parameters[1] instanceof Date
+		}
+
+		def params = [ author:"%Borges%" , releaseDate: new Date() ]
+
+		obj.test( params )
+	}
+	
+	
+	void testMethodChain() {
+		
+		def obj = parseAndInstance ( """
+						
+			def test(){
+											
+				testFind{ it.author.name.substr(2,5).lower() == "est" }
+								
+			}
+			
+		""" )
+
+		obj.metaClass.static.testFind = { ClosureExpression closureExpression , ArrayList parameters ->
+
+			assert getHQL( closureExpression ) == "from TestClass as testclass where ( lower( substr( testclass.author.name, 2, 5 ) ) = 'est' )"
+			assert parameters.size() == 0
+			
+		}
+				
+		obj.test()
+	}
+	
+	
+	
+	void testMethodChainWithParam() {
+		
+		def obj = parseAndInstance ( """
+						
+			def test( params ){
+											
+				testFind{ it.author.name.substr(3,5).lower() ==  params.authorSubstr  && it.releaseDate.year() > params.releaseYear }
+								
+			}
+			
+		""" )
+
+		obj.metaClass.static.testFind = { ClosureExpression closureExpression , ArrayList parameters ->
+
+			assert getHQL( closureExpression ) == "from TestClass as testclass where ( ( lower( substr( testclass.author.name, 3, 5 ) ) = ? ) and ( year( testclass.releaseDate ) > ? ) )"
+			assert parameters.size() == 2
+			assert parameters[0] == "rges"
+			assert parameters[1] == 1972
+		}
+
+		def params = [ authorSubstr:"rges" , releaseYear: 1972 ]
+
+		obj.test( params )
 	}
 
 

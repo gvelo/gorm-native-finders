@@ -3,6 +3,7 @@ dataSource {
     driverClassName = "org.hsqldb.jdbcDriver"
     username = "sa"
     password = ""
+	loggingSql = true
 }
 hibernate {
     cache.use_second_level_cache = true

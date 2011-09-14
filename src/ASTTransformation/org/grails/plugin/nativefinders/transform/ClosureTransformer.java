@@ -36,6 +36,7 @@ import org.codehaus.groovy.ast.expr.ListExpression;
 import org.codehaus.groovy.ast.expr.MethodCallExpression;
 import org.codehaus.groovy.ast.expr.NotExpression;
 import org.codehaus.groovy.ast.expr.PropertyExpression;
+import org.codehaus.groovy.ast.expr.TupleExpression;
 import org.codehaus.groovy.ast.expr.VariableExpression;
 import org.codehaus.groovy.ast.stmt.BlockStatement;
 import org.codehaus.groovy.ast.stmt.ExpressionStatement;
@@ -98,6 +99,8 @@ public class ClosureTransformer {
 	
 	private void validate(ClosureExpression closure) {
 
+		//TODO: Improbe validation.
+		
 		BlockStatement bs = (BlockStatement) closure.getCode();
 
 		if (bs == null || bs.getStatements().size() == 0) {
@@ -105,25 +108,11 @@ public class ClosureTransformer {
 			return;
 		}
 
-		ExpressionStatement expr;
-
-		try {
-			expr = (ExpressionStatement) bs.getStatements().get(0);
-		} catch (ClassCastException cce) {			
-			addError("Only binary expression are allowed in native finder closures", bs.getStatements().get(0));
-			return;
-		}
-
-		if (!(expr.getExpression() instanceof BinaryExpression) || (expr.getExpression() instanceof NotExpression)) {
-			addError("Only binary expression are allowed in native finder closures", expr.getExpression());
-			return;
-		}
-
 	}
 
 	private boolean isClosureParameter(Expression expression) {
 
-		String variableName = getVariableName( expression ) ;		
+		String variableName = getRootVariableName( expression ) ;		
 		
 		if ( variableName == null ){
 			return false;
@@ -145,11 +134,11 @@ public class ClosureTransformer {
 
 	}
 	
-	private String getVariableName( Expression expression ){
+	private String getRootVariableName( Expression expression ){
 		
-		if ( expression instanceof PropertyExpression ) {
+		if ( expression instanceof PropertyExpression || expression instanceof MethodCallExpression ) {
 			
-			VariableExpression variableExpr = getRootVariable( (PropertyExpression) expression );
+			VariableExpression variableExpr = getRootVariable( expression );
 
 			if ( variableExpr != null ){
 				return variableExpr.getName();
@@ -167,14 +156,24 @@ public class ClosureTransformer {
 		
 	}
 	
-	private VariableExpression getRootVariable( PropertyExpression propertyExpr ){
+	private VariableExpression getRootVariable( Expression expression ){
 		
-		if ( propertyExpr.getObjectExpression() instanceof VariableExpression ){
-			return (VariableExpression) propertyExpr.getObjectExpression(); 
+		Expression objectExpression = null;
+		
+		if ( expression instanceof PropertyExpression ){
+			objectExpression = ( ( PropertyExpression ) expression ).getObjectExpression();
+		} else if ( expression instanceof MethodCallExpression ){
+			objectExpression = ( ( MethodCallExpression ) expression ).getObjectExpression();
+		} else{
+			return null;
+		}			
+		
+		if ( objectExpression instanceof VariableExpression ){
+			return (VariableExpression) objectExpression; 
 		}
 		
-		if ( propertyExpr.getObjectExpression() instanceof PropertyExpression ){
-			return getRootVariable( (PropertyExpression) propertyExpr.getObjectExpression() ); 
+		if ( objectExpression instanceof PropertyExpression || objectExpression instanceof MethodCallExpression ){
+			return getRootVariable( objectExpression ); 
 		}
 		
 		return null;
@@ -223,23 +222,34 @@ public class ClosureTransformer {
 
 	}
 
-	private Expression transformExpression(Expression expression) {
+	private Expression transformExpression(Expression expression) {		
 
 		if (expression instanceof BinaryExpression) {
 			return transformBinaryExpression( (BinaryExpression) expression );
 		} else if (expression instanceof ConstantExpression) {
 			return transformConstantExpression( (ConstantExpression) expression );
-		} else if (expression instanceof VariableExpression) {
-			return transformVariableExpression( (VariableExpression) expression );
-		} else if (expression instanceof PropertyExpression) {
-			return transformPropertyExpression( (PropertyExpression) expression );
 		} else if (expression instanceof NotExpression) {
 			return transformNotExpression( (NotExpression) expression );
-		} else {
-			addError(expression.getClass().getName() + "not allowed in native finder context", expression);
+		} else if ( expression instanceof TupleExpression ){
+			return transformTupleExpression( (TupleExpression) expression );
 		}
-
-		return null;
+		
+		if ( isClosureParameter( expression ) ){
+			
+			if (expression instanceof VariableExpression) {
+				return transformVariableExpression( (VariableExpression) expression );
+			} else if (expression instanceof PropertyExpression) {
+				return transformPropertyExpression( (PropertyExpression) expression );
+			} else if ( expression instanceof MethodCallExpression ){
+				return transformMethodCallExpression( (MethodCallExpression) expression);
+			} else {
+				addError(expression.getClass().getName() + "not allowed in native finder context", expression);
+				return null;
+			}
+			
+		}
+		
+		return createQueryParameter( expression );
 
 	}
 
@@ -423,15 +433,32 @@ public class ClosureTransformer {
 
 	}
 	
-	private void addError(String msg, ASTNode expr) {
+	private Expression transformTupleExpression( TupleExpression tupleExpr ){
 		
+		//public TupleExpression(Expression[] expressionArray)
+		
+		ListExpression expressionList = new ListExpression();
+
+		for ( Expression  expr : tupleExpr.getExpressions() ) {
+			expressionList.addExpression( transformExpression( expr ) );
+		}
+				
+		ClassNode classNode = ClassHelper.make( TupleExpression.class );		
+		ArgumentListExpression arguments = new ArgumentListExpression();
+
+		
+		arguments.addExpression( new CastExpression( ClassHelper.make( Expression[].class ), expressionList ) );
+
+		return new ConstructorCallExpression( classNode, arguments );
+		
+	}
+	
+	private void addError(String msg, ASTNode expr) {		
 		hasErrors=true;
-        int line = expr.getLineNumber();
-        int col = expr.getColumnNumber();
-        source.getErrorCollector().addErrorAndContinue(
-                new SyntaxErrorMessage(new SyntaxException(msg + '\n', line, col), source)
-        );
-    }
+		int line = expr.getLineNumber();
+		int col = expr.getColumnNumber();
+		source.getErrorCollector().addErrorAndContinue( new SyntaxErrorMessage(new SyntaxException(msg + '\n', line, col), source ));
+	}
 	
 	public boolean hasErrors(){
 		return hasErrors;
